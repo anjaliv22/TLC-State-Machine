@@ -1,7 +1,6 @@
 ** Written in VHDL
 Anjali Vathanakumaran and Mahi Joshi
-//Lab 4: Moore Machine
-//Group 22
+
 LIBRARY ieee;
 USE ieee.std_logic_1164 .ALL;
 USE ieee.numeric_std.ALL;
