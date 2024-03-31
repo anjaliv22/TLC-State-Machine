@@ -1,0 +1,105 @@
+** Written in VHDL
+Anjali Vathanakumaran and Mahi Joshi
+//Lab 4: Moore Machine
+//Group 22
+LIBRARY ieee;
+USE ieee.std_logic_1164 .ALL;
+USE ieee.numeric_std.ALL;
+ENTITY logicalstep_lab4_top IS
+PORT
+(
+clkin_50 : in std_logic; -- The 50 MHz FPGA Clockinputrst_n : in std_logic; -- The RESET input (ACTIVE LOW)pb_n : in std_logic_vector (3 downto 0); -- The push-button inputs (ACTIVE LOW)sw : in std_logic_vector (7 downto 0); -- The switch inputsleds : out std_logic_vector (7 downto 0); -- for displaying the the lab4 project details-------------------------------------------------------------
+-- you can add temporary output ports here if you need to debug your design -- or to add internal signals for your simulations
+-------------------------------------------------------------
+-- additional ports created for the simulation
+--sm_clken1, blink : out std_logic;
+--EW_a, EW_d, EW_g : out std_logic;
+--NS_a, NS_d, NS_g : out std_logic;
+seg7_data : out std_logic_vector (6 downto 0); -- 7-bit outputs to a 7-segmentseg7_char1 : out std_logic; -- seg7 digi selectorsseg7_char2 : out std_logic -- seg7 digi selectors);
+END logicalstep_lab4_top ;
+ARCHITECTURE SimpleCircuit OF logicalstep_lab4_top IS
+component segment7_mux port (
+clk : in std_logic := '0';
+DIN2 : in std_logic_vector (6 downto 0); --bits 6 to 0 represent segments G,F,E,D,C,B,A
+DIN1 : in std_logic_vector (6 downto 0); --bits 6 to 0 represent segments G,F,E,D,C,B,A
+DOUT : out std_logic_vector (6 downto 0);
+DIG2 : out std_logic;
+DIG1 : out std_logic
+);
+end component;
+component clock_generator port (
+sim_mode : in boolean;
+reset : in std_logic;
+clkin : in std_logic;
+sm_clken : out std_logic;
+blink : out std_logic
+);
+end component;
+component pb_filters port (
+clkin : in std_logic;
+rst_n : in std_logic;
+rst_n_filtered : out std_logic;
+pb_n : in std_logic_vector (3 downto 0);
+pb_n_filtered : out std_logic_vector (3 downto 0)
+);
+end component;
+-- inverts the resest and push bittons from active low to active highcomponent pb_inverters port (
+rst_n : in std_logic;
+rst : out std_logic; -- inverted reset (1 bit)
+pb_n_filtered : in std_logic_vector (3 downto 0);
+pb : out std_logic_vector (3 downto 0) -- inverted push buttons (4 bits)
+);
+end component;
+-- changes the pedestrian requests from asynchronous to sychronized and connected to the common global clock
+component synchronizer port(
+clk : in std_logic;
+reset : in std_logic;
+dout : out std_logic -- 1 bit for the final output of theflip flop );
+end component;
+--holds the pedestrian request signal until the correspnding signal is amber to clear the signal component holding_register port (
+clk : in std_logic;
+reset : in std_logic;
+register_clr : in std_logic; -- clears the pedestrian request signal din : in std_logic; -- the output of the corresponding syncrhonizer dout : out std_logic
+);
+end component;
+-- manages the states of the traffic signal in NS and Ew in accordance to the pedestrian requests component State_Machine_Moore Port
+(
+clk_input, enable, reset: IN std_logic;
+NSrequest, EWrequest : IN std_logic; -- 1 bit memory to hold the pedestrian request signal in the NS and EW direction
+flashing, green, amber, red : OUT std_logic; -- NS
+flashingE, greenE, amberE, redE : out std_logic; -- Ew
+NSclear, EWclear, NScrossing , EWcrossing : out std_logic; -- clears the request signal and controls crossing display when it is safe to cross
+stateCounter : out std_logic_vector (3 downto 0) -- counts the state of the moore machine);
+end component;
+
+CONSTANT sim_mode : boolean := FALSE; -- set to FALSE for LogicalStep board downloads -- set to TRUE for SIMULATIONS
+SIGNAL rst, rst_n_filtered , synch_rst : std_logic; -- 1 bit memory assigned for reset signals
+SIGNAL sm_clken, blink_sig : std_logic; -- blinking signal for the flashing green light
+SIGNAL pb_n_filtered , pb : std_logic_vector (3 downto0);-- push button signals
+-- output of the synchronizer becomes the input of the holding registerSIGNAL tem1, tem2 : std_logic;
+signal flashing: std_logic; -- signal for flashing green signal in NS signal green: std_logic; -- signal for solid green signal in NS
+signal amber: std_logic; -- signal for amber signal in NS
+signal red : std_logic; -- signal for red signal in NS
+signal flashingE: std_logic; -- signal for flashing green signal in EW signal greenE: std_logic; -- signal for solid green signal in EW
+signal amberE: std_logic; -- signal for amber signal in EW
+signal redE: std_logic;-- signal for red signal in EW
+signal NS : std_logic_vector (6 downto 0); -- Concatenated signal of the traffic lights for the seven segment display in NS (DIGIT 2)
+signal EW : std_logic_vector (6 downto 0);-- Concatenated signal of the traffic lights for the seven segment display in NS (DIGIT 1)
+signal NS_Crossing : std_logic; -- signal for crossing display in NS (safe to cross)signal EW_Crossing : std_logic; -- signal for crossing display in EW (safe to cross)signal NSrequest : std_logic; -- signal for pedestrian request in NS signal EWrequest : std_logic; -- signal for pedestrian request in EW signal NSclear : std_logic; -- signal to clear pedestrian request signal in NSsignal EWclear : std_logic; -- signal to clear pedestrian request signal in EWBEGIN
+leds(0)<= NS_Crossing ; -- LEDS 0 on step board shows crossing display for NS (turns on when it is safe to cross in NS)
+leds(2) <= EW_Crossing ;-- LEDS 2 on step board shows crossing display for EW (turns on when it is safe to cross in EW)
+leds(1) <= NSrequest; -- LEDS 1 turns on if a pedestrian request was made in NS leds(3) <= EWrequest; -- LEDS 1 turns on if a pedestrian request was made in NS
+INST0: pb_filters port map (clkin_50, rst_n, rst_n_filtered , pb_n, pb_n_filtered );-- instance of the pb filter file -
+INST1: pb_inverters port map (rst_n_filtered , rst, pb_n_filtered , pb);-- flips resest and push buttons from active low to active high
+INST2: synchronizer port map (clkin_50, synch_rst, rst, synch_rst);-- the synchronizer is also reset by synch_rst.
+INST3: clock_generator port map (sim_mode, synch_rst, clkin_50, sm_clken, blink_sig);--generating sm_clken output
+INST4: synchronizer port map(clkin_50, synch_rst, pb(1), tem1); -- turns the EW pedestrian request from asynchronous to synchronized and connects it to the common global clockINST5: holding_register port map(clkin_50, synch_rst, EWclear, tem1, EWrequest);-- take in the synchronizer output and holds the EW pedestrian request
+INST6: synchronizer port map(clkin_50, synch_rst, pb(0), tem2); -- turns the NS pedestrian request from asynchronous to synchronized and connects it to the common global clockINST7: holding_register port map(clkin_50, synch_rst, NSclear, tem2, NSrequest);-- take in the synchronizer output and holds the NS pedestrian request
+-- creates an instance of the moore machine which manages the states of the traffic light based on the input signal of the pedestrian request
+-- leds 7->4 count the state which the machine is at in binary
+INST8: State_Machine_Moore port map(clkin_50, sm_clken, synch_rst, NSrequest, EWrequest, flashing,green, amber, red, flashingE, greenE, amberE, redE, NSclear, EWclear, NS_Crossing , EW_Crossing , leds(7 downto 4));
+-- concatenation of traffic lights (chooses between solid green or flashing green based on which one is on in the current state)
+NS <= amber & "00" & (green oR (flashing AND blink_sig)) & "00" & red;EW <= amberE & "00" & (greenE OR (flashingE AND blink_sig)) & "00" & redE;-- temporary signals for simulation
+
+-- digit 2 shows the traffic lights for NS, digit 1 shows the traffic lights for 
+EWINST9: segment7_mux port map(clkin_50, EW, NS, seg7_data(6 downto 0), seg7_char1 , seg7_char2);END SimpleCircuit ;
