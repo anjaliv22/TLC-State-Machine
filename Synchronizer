@@ -1,7 +1,5 @@
 **Written in VHDL
 --Anjali Vathanakumaran and Mahi Joshi
---Lab 4: Moore Machine
--- Group 22
 library ieee;
 use ieee.std_logic_1164 .all;
 -- the pedestrian request in NS and EW direction is intially asynchronous. Pushing through the synrchronizer
