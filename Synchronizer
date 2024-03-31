@@ -1,0 +1,20 @@
+**Written in VHDL
+--Anjali Vathanakumaran and Mahi Joshi
+--Lab 4: Moore Machine
+-- Group 22
+library ieee;
+use ieee.std_logic_1164 .all;
+-- the pedestrian request in NS and EW direction is intially asynchronous. Pushing through the synrchronizer
+--will then make it synchronized and connected with the common global clock. entity synchronizer is port (
+clk : in std_logic; -- in the top file instance connect clkin_50reset : in std_logic;
+din : in std_logic; -- the intial input of the synchronizerdout : out std_logic -- the final output of the synchronizer);
+end synchronizer ;
+architecture circuit of synchronizer is
+Signal sreg : std_logic_vector (1 downto 0); -- assigning 2 bit vector memory because there is 2 corresponding flip flops.
+BEGIN process (clk) is
+begin if (rising_edge(clk)) then
+sreg(0) <= (not reset AND din); -- the output of the first d-flip flop when the reset is not being pressed is the input value
+sreg(1) <= (not reset AND sreg(0)); --the output of the second d-flip flop when the reset is not being pressed is the output of the first flip flop.
+end if;
+end process;
+dout <= sreg(1); --the final output is the output of the second d-flip flopend;
