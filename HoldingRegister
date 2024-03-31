@@ -1,0 +1,19 @@
+-- Anjali Vathanakumaran and Mahi Joshi
+
+library ieee;
+use ieee.std_logic_1164 .all;
+-- allows the traffic signal to hold the pedestrian request signal in the NS or EW direction until the state machine is ready to clear it.
+-- The pedestrain request signal is cleared when the pedestrians have crossed or can no longer cross because the light is now amber.
+-- Another case of when the pedestrian request is pressed is that it jumps states so it shortens the waiting time for pedestrians
+entity holding_register is port (
+clk : in std_logic;
+reset : in std_logic;
+register_clr : in std_logic; --clears the pedestrian signal din : in std_logic; --the output of synchronizer dout : out std_logic --the final output of the holding register);
+end holding_register ;
+architecture circuit of holding_register is
+Signal sreg : std_logic; --assigning 1 bit memory to hold the output value of the corresponding d-flip flop
+BEGIN process(clk) is
+begin if(rising_edge(clk)) then
+sreg <= (din OR sreg) AND (NOT(register_clr OR reset)) AND (NOT(RESET));-- if the reset is off then the output is the combinational logic between clear, din, reset and sreg--^^ combinational logic is based off the logic given in the manual diagram end if;
+end process;
+dout <= sreg; -- the final output is the value evaluated by the logic of sregend circuit;
